@@ -3,11 +3,18 @@
 import { useRef, useEffect, useState, Suspense } from 'react';
 import { useFrame, Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import Particles from '@/components/Particles';
+import Particles from './Particles';
 
 type Props = {
   handPosRef: React.MutableRefObject<{ 
-    x: number; y: number; grip: number; isTriangle: boolean; loveMode: 'none'|'single'|'double'; fingerCount: number; landmarks: any[];
+    x: number; 
+    y: number; 
+    grip: number; 
+    isTriangle: boolean; 
+    loveMode: 'none'|'single'|'double'; 
+    isPinch: boolean; // <--- PERBAIKAN: Menambahkan ini
+    fingerCount: number; 
+    landmarks: any[];
   }>;
 };
 
@@ -53,7 +60,7 @@ function EffectsController({ handPosRef }: Props) {
         let target = 0.5;
         if (loveMode !== 'none') target = 3.5; 
         else if (isTriangle) target = 3.0;
-        else if (isPinch) target = 2.0; // Bloom saat pinch (Saranghae single)
+        else if (isPinch) target = 2.0;
         else if (grip > 0.5) target = 1.0;
         bloomRef.current.intensity += (target - bloomRef.current.intensity) * 0.1;
     }
@@ -78,7 +85,6 @@ function EffectsController({ handPosRef }: Props) {
   if (!ready) return null;
 
   return (
-    // PERBAIKAN DI SINI: disableNormalPass diganti enableNormalPass={false}
     <EffectComposer enableNormalPass={false} enabled={true}>
       <Bloom ref={bloomRef} luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} />
     </EffectComposer>
