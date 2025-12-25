@@ -2,9 +2,9 @@
 
 import { useRef } from 'react';
 import dynamic from 'next/dynamic';
-import HandTracker from './components/HandTracker';
+import HandTracker from '@/components/HandTracker';
 
-const Scene = dynamic(() => import('./components/Scene'), { 
+const Scene = dynamic(() => import('@/components/Scene'), { 
   ssr: false, 
   loading: () => null 
 });
