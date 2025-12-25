@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, Suspense } from 'react';
 import { useFrame, Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import Particles from '@/app/components/Particles';
+import Particles from '@/components/Particles';
 
 type Props = {
   handPosRef: React.MutableRefObject<{ 
