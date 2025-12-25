@@ -6,7 +6,13 @@ import * as THREE from 'three';
 
 type Props = {
   handPosRef: React.MutableRefObject<{ 
-    x: number; y: number; grip: number; isTriangle: boolean; loveMode: 'none' | 'single' | 'double'; fingerCount: number; 
+    x: number; 
+    y: number; 
+    grip: number; 
+    isTriangle: boolean; 
+    loveMode: 'none' | 'single' | 'double'; 
+    isPinch: boolean; // <--- PERBAIKAN: Menambahkan ini
+    fingerCount: number; 
   }>;
 };
 
@@ -126,7 +132,7 @@ export default function Particles({ handPosRef }: Props) {
   useFrame((state) => {
     if (!meshRef.current || particlesRef.current.length === 0 || !handPosRef.current) return;
     
-    const { x: rawX, y: rawY, grip, isTriangle, loveMode, fingerCount } = handPosRef.current;
+    const { x: rawX, y: rawY, grip, isTriangle, loveMode, isPinch, fingerCount } = handPosRef.current;
     
     // Koordinat Kompensasi
     let fixedX = 1 - rawX; let fixedY = rawY;
@@ -148,23 +154,19 @@ export default function Particles({ handPosRef }: Props) {
 
     // --- LOGIKA TARGET POSISI ---
     let targetCenterPos = handVector;
-    
-    // Jika Cinta 2 Tangan / Segitiga => Di Tengah
     if (loveMode === 'double' || isTriangle) {
         targetCenterPos = centerVector;
-    }
-    // Jika Saranghae (Single Love) => Di Tangan (handVector)
-    else if (loveMode === 'single') {
+    } else if (loveMode === 'single') {
         targetCenterPos = handVector;
     }
 
-    if (fingerCount !== lastFingerCount.current && !isTriangle && loveMode === 'none' && grip < 0.5) {
+    if (fingerCount !== lastFingerCount.current && !isTriangle && loveMode === 'none' && !isPinch && grip < 0.5) {
       numberTargets.current = generateTextPoints(fingerCount.toString(), count);
       lastFingerCount.current = fingerCount;
     }
 
-    const isNumberMode = fingerCount > 0 && !isTriangle && loveMode === 'none' && grip < 0.5;
-    const isBallMode = grip > 0.7 && !isTriangle && loveMode === 'none';
+    const isNumberMode = fingerCount > 0 && !isTriangle && loveMode === 'none' && !isPinch && grip < 0.5;
+    const isBallMode = grip > 0.7 && !isTriangle && loveMode === 'none' && !isPinch;
 
     const time = state.clock.getElapsedTime();
     const cosT = Math.cos(time * 2.0); 
@@ -176,12 +178,8 @@ export default function Particles({ handPosRef }: Props) {
       p.rotX += p.rotSpeedX; p.rotY += p.rotSpeedY; p.rotZ += p.rotSpeedZ;
 
       if (loveMode !== 'none') {
-        // --- MODE LOVE (SINGLE & DOUBLE) ---
         const pulse = 1 + Math.sin(time * 8.0) * 0.1;
-        
-        // Jika Saranghae (Single), ukuran hati diperkecil 50%
         const finalScale = (loveMode === 'single') ? 0.5 : 1.0;
-        
         tx = targetCenterPos.x + (p.lx * pulse * finalScale);
         ty = targetCenterPos.y + (p.ly * pulse * finalScale);
         tz = targetCenterPos.z + (p.lz * finalScale);
@@ -194,6 +192,13 @@ export default function Particles({ handPosRef }: Props) {
         ty = targetCenterPos.y + p.py;
         tz = targetCenterPos.z + rotZ;
         speed = 0.15;
+      }
+      else if (isPinch) {
+        // Mode Pinch (Saranghae Single sebenarnya masuk loveMode, ini untuk Pinch non-love jika ada)
+        tx = targetCenterPos.x + (Math.random()-0.5)*0.2;
+        ty = targetCenterPos.y + (Math.random()-0.5)*0.2;
+        tz = (Math.random()-0.5)*0.2;
+        speed = 0.3;
       } 
       else if (isBallMode) {
         const density = 0.8;
@@ -229,7 +234,8 @@ export default function Particles({ handPosRef }: Props) {
       let modeSize = 0.08; 
       if (isBallMode) modeSize = 0.15;
       if (isTriangle) modeSize = 0.10;
-      if (loveMode !== 'none') modeSize = 0.12; 
+      if (loveMode !== 'none') modeSize = 0.12;
+      if (isPinch && loveMode === 'none') modeSize = 0.02;
 
       const targetScale = modeSize * p.baseScale;
       p.currentScale += (targetScale - p.currentScale) * 0.1;
@@ -245,18 +251,23 @@ export default function Particles({ handPosRef }: Props) {
        const scatterColor = new THREE.Color('#00ffff'); 
        const ballColor = new THREE.Color('#ffffff');    
        const pyramidColor = new THREE.Color('#ffd700'); 
-       const loveColor = new THREE.Color('#ff0055'); // Merah Cinta
+       const loveColor = new THREE.Color('#ff0055'); 
+       const pinchColor = new THREE.Color('#ff00ff');
 
        let target = scatterColor;
        let targetEmissive = 1.0;
 
        if (loveMode !== 'none') {
          target = loveColor;
-         targetEmissive = 3.0; // GLOW KUAT
+         targetEmissive = 3.0; 
        }
        else if (isTriangle) {
          target = pyramidColor;
          targetEmissive = 3.0; 
+       }
+       else if (isPinch) {
+         target = pinchColor;
+         targetEmissive = 2.0;
        }
        else if (isBallMode) {
          target = ballColor;
