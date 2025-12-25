@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, Suspense } from 'react';
 import { useFrame, Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import Particles from './Particles';
+import Particles from '@/app/components/Particles';
 
 type Props = {
   handPosRef: React.MutableRefObject<{ 
@@ -18,6 +18,7 @@ function EffectsController({ handPosRef }: Props) {
   const lastFingerCount = useRef(-1);
   const wasTriangle = useRef(false);
   const wasLoveMode = useRef<'none'|'single'|'double'>('none');
+  const wasPinch = useRef(false);
 
   useEffect(() => {
     setReady(true);
@@ -45,16 +46,19 @@ function EffectsController({ handPosRef }: Props) {
 
   useFrame(() => {
     if (!handPosRef.current) return;
-    const { grip, isTriangle, loveMode, fingerCount } = handPosRef.current;
+    const { grip, isTriangle, loveMode, isPinch, fingerCount } = handPosRef.current;
     
+    // Bloom Animation
     if (bloomRef.current) {
         let target = 0.5;
         if (loveMode !== 'none') target = 3.5; 
         else if (isTriangle) target = 3.0;
+        else if (isPinch) target = 2.0; // Bloom saat pinch (Saranghae single)
         else if (grip > 0.5) target = 1.0;
         bloomRef.current.intensity += (target - bloomRef.current.intensity) * 0.1;
     }
 
+    // Audio Trigger Logic
     if (loveMode === 'single' && wasLoveMode.current !== 'single') speak("Saranghae");
     if (loveMode === 'double' && wasLoveMode.current !== 'double') speak("Cinta Besar");
     wasLoveMode.current = loveMode;
@@ -62,7 +66,10 @@ function EffectsController({ handPosRef }: Props) {
     if (isTriangle && !wasTriangle.current) speak("Piramida");
     wasTriangle.current = isTriangle;
 
-    if (!isTriangle && loveMode === 'none' && grip < 0.5 && fingerCount !== lastFingerCount.current) {
+    if (isPinch && !wasPinch.current && !isTriangle && loveMode === 'none') speak("Fokus");
+    wasPinch.current = isPinch;
+
+    if (!isTriangle && loveMode === 'none' && !isPinch && grip < 0.5 && fingerCount !== lastFingerCount.current) {
         if (fingerCount > 0) speak(fingerCount.toString());
         lastFingerCount.current = fingerCount;
     }
@@ -71,7 +78,8 @@ function EffectsController({ handPosRef }: Props) {
   if (!ready) return null;
 
   return (
-    <EffectComposer disableNormalPass enabled={true}>
+    // PERBAIKAN DI SINI: disableNormalPass diganti enableNormalPass={false}
+    <EffectComposer enableNormalPass={false} enabled={true}>
       <Bloom ref={bloomRef} luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} />
     </EffectComposer>
   );
